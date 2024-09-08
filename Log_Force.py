@@ -29,10 +29,8 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         for i in range(1000):
             Zero += task.read()
 
-        #Linear equation with 2 points: (0mV,0LB) and (Voltagebattery*2(mV),1000LB)
         slope = 1000/(float(Voltage)*2)
         offset = slope*Zero
-       
 
         print("logging")
         while True:
