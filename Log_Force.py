@@ -9,7 +9,7 @@ csv_filename = 'Force_log.csv'
 
 
 with open(csv_filename,mode='w',newline='') as csvfile:
-    fieldnames = ['Timestamp', 'Force (LB)']
+    fieldnames = ['Timestamp', 'Force (LB)','Voltage (mV)']
     writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
 
     writer.writeheader()
@@ -18,7 +18,7 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
     #read samples continuously
     
-        task.timing.cfg_samp_clk_timing(100000.0,sample_mode=AcquisitionType.FINITE,samps_per_chan=100000)
+        task.timing.cfg_samp_clk_timing(100.0,sample_mode=AcquisitionType.CONTINUOUS)
         task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_RESOLUTION
         
         Voltage = input("Measure Battery Voltage: ")
@@ -29,27 +29,28 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         for i in range(1000):
             Zero += task.read()
 
-        
-        slope = 1000/float(Voltage)
+        #Linear equation with 2 points: (0mV,0LB) and (Voltagebattery*2(mV),1000LB)
+        slope = 1000/(float(Voltage)*2)
         offset = slope*Zero
        
 
         print("logging")
         while True:
             #avg 1000 samples in mV
-            sum = 0
-            for i in range(1000):
-                sum += task.read()
+            #sum = 0
+            #for i in range(1000):
+                #sum += task.read()
+            Vin = task.read()*1000
             #calculate force from linear equation
             #Force = sum*40.1929-14.067
-            Force = sum*slope-offset
-            print(sum, " mV")
+            Force = Vin*slope-offset
+            print(Vin, " mV")
             print("Force = ", Force, " LB")
 
             #Get formatted timestamp
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
-            writer.writerow({'Timestamp': timestamp, 'Force (LB)': Force})
+            writer.writerow({'Timestamp': timestamp, 'Force (LB)': Force, 'Voltage (mV)': Vin})
 
 
 
