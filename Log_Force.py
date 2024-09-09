@@ -3,14 +3,14 @@ from nidaqmx.constants import AcquisitionType
 import csv
 from datetime import datetime
 
-csv_filename = 'Force_log.csv'
+csv_filename = 'Torque_log.csv'
 
 
 
 
 #THE CURRENT ERROR IS +-1LB ON THE SENSOR
 with open(csv_filename,mode='w',newline='') as csvfile:
-    fieldnames = ['Timestamp', 'Force (LB)','Voltage (mV)']
+    fieldnames = ['Timestamp', 'Torque (Ft-LB)','Voltage (mV)']
     writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
 
     writer.writeheader()
@@ -19,7 +19,7 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
     #read samples continuously
     
-        task.timing.cfg_samp_clk_timing(100.0,sample_mode=AcquisitionType.CONTINUOUS)
+        task.timing.cfg_samp_clk_timing(1000.0)
         task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_RESOLUTION
         
         Voltage = input("Measure Battery Voltage: ")
@@ -43,7 +43,7 @@ with open(csv_filename,mode='w',newline='') as csvfile:
             #Get formatted timestamp
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
-            writer.writerow({'Timestamp': timestamp, 'Force (LB)': Force, 'Voltage (mV)': Vin})
+            writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': Vin})
 
 
 

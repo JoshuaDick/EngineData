@@ -5,32 +5,33 @@ from datetime import datetime
 from time import perf_counter
 
 csv_filename = 'RPM_log.csv'
-scale = 10.0
+SCALE = 10.0
 with open(csv_filename,mode='w',newline='') as csvfile:
-    fieldnames = ['Timestamp', 'RPM','Voltage (mV)']
+    fieldnames = ['Timestamp', 'RPM','High Time (s)']
     writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
 
     writer.writeheader()
 
     with nidaqmx.Task() as task:
         #Define channel for NI 9205 (pins 1 & 19)
-        task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=-1.0,max_val=1.0)
+        task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=-10,max_val=10)
         #100Khz sample rate
-        task.timing.cfg_samp_clk_timing(100000.0,sample_mode=AcquisitionType.CONTINUOUS)
+        task.timing.cfg_samp_clk_timing(100000.0)
 
         print("Logging RPM...")
-
+        count = 0
         while True:
             try:
                 t1_start = 0
+                rpm = 0
                 RisingEdge = False
                 Vin = task.read()
 
             #once we see a high signal, we measure high time
-                if (Vin > 0.1):
+                if (Vin >= 5.0):
                     t1_start = perf_counter()
                     RisingEdge = True
-                while Vin > 0.1:
+                while Vin >= 5.0:
                     Vin = task.read()
 
             #Log RPM based on high time, or log 0RPM
@@ -38,15 +39,15 @@ with open(csv_filename,mode='w',newline='') as csvfile:
                     t1_end = perf_counter()
 
                 #RPM calculation based on fixed 49.9% Duty Cycle from M130 with scale of 10.0Hz
-                    rpm = (0.499/(t1_end-t1_start))*60/scale
+                    rpm = (0.499/(t1_end-t1_start))*60/SCALE
                 #log RPM with timestamp
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                    writer.writerow({'Timestamp': timestamp, 'Force (LB)': rpm, 'Voltage (mV)': Vin*1000})
+                    writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'High Time (s)': t1_end-t1_start})
                 else:
                 #log RPM of 0 with timestamp
                     rpm = 0.0
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                    writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'Voltage (mV)': Vin*1000})
+                    writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'High Time (s)': 0})
             except nidaqmx.errors.DaqReadError:
                 print("Buffer Overflow")
 
