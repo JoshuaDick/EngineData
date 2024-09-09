@@ -33,18 +33,12 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         slope = 1000/(float(Voltage)*2)
         offset = slope*Zero
 
-        print("logging")
+        print("Logging Torque...")
         while True:
-            #avg 1000 samples in mV
-            #sum = 0
-            #for i in range(1000):
-                #sum += task.read()
             Vin = task.read()*1000
-            #calculate force from linear equation
-            #Force = sum*40.1929-14.067
             Force = Vin*slope-offset
-            print(Vin, " mV")
-            print("Force = ", Force, " LB")
+            #print(Vin, " mV")
+            #print("Force = ", Force, " LB")
 
             #Get formatted timestamp
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
