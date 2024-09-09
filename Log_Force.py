@@ -8,6 +8,7 @@ csv_filename = 'Force_log.csv'
 
 
 
+#THE CURRENT ERROR IS +-1LB ON THE SENSOR
 with open(csv_filename,mode='w',newline='') as csvfile:
     fieldnames = ['Timestamp', 'Force (LB)','Voltage (mV)']
     writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
