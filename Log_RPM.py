@@ -25,6 +25,7 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         print("Logging RPM...")
         task.start()
         delay_start = time.time()
+        DataPoints = []
         while True:
                 #Read in an array of 100 samples at 100kHz
                 Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)
@@ -47,10 +48,13 @@ with open(csv_filename,mode='w',newline='') as csvfile:
                         #Equation for rpm from duty cycle and measured high time
                          rpm = 0.5/(highTime)*60/SCALE
                          #LIMIT TO 10HZ TO PREVENT INSANE STORAGE OVERFLOW
+                         DataPoints.append(rpm)
                          if time.time() - delay_start > 0.1:
                             delay_start = time.time()
-                            #log RPM with timestamp
+                            #log average RPM with timestamp
+                            avgrpm = sum(DataPoints)/len(DataPoints)
+                            DataPoints = []
                             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                            writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'Frequency (Hz)': 0.499/highTime})
+                            writer.writerow({'Timestamp': timestamp, 'RPM': avgrpm, 'Frequency (Hz)': SCALE*avgrpm/60})
 
 
