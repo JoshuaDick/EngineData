@@ -3,52 +3,54 @@ from nidaqmx.constants import AcquisitionType
 import csv
 from datetime import datetime
 from time import perf_counter
+import time
 
-csv_filename = 'RPM_log.csv'
-SCALE = 10.0
+csv_filename = 'RPM_log.csv' #name of file to log data into
+SCALE = 20.0 #Hz
+THRESHOLD = 5.0 #RISING EDGE THRESHOLD IN VOLTS
+
+
 with open(csv_filename,mode='w',newline='') as csvfile:
-    fieldnames = ['Timestamp', 'RPM','High Time (s)']
+    fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
     writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
 
     writer.writeheader()
 
     with nidaqmx.Task() as task:
         #Define channel for NI 9205 (pins 1 & 19)
-        task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=-10,max_val=10)
-        #100Khz sample rate
-        task.timing.cfg_samp_clk_timing(100000.0)
+        task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
+        #250Khz sample rate
+        task.timing.cfg_samp_clk_timing(100000,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=100)
 
         print("Logging RPM...")
-        count = 0
+        task.start()
+        delay_start = time.time()
         while True:
-            try:
-                t1_start = 0
-                rpm = 0
-                RisingEdge = False
-                Vin = task.read()
+                #Read in an array of 100 samples at 100kHz
+                Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)
+                if len(Vin) > 0:
+                #Average the number of consecutive high signals in the array
+                    consecutive_Values = []
+                    current_count = 0
+                    for i in range(len(Vin)):
+                        if (Vin[i] >= THRESHOLD):
+                             current_count += 1
+                        else:
+                             if current_count != 0:
+                                consecutive_Values.append(current_count)
+                             current_count = 0
 
-            #once we see a high signal, we measure high time
-                if (Vin >= 5.0):
-                    t1_start = perf_counter()
-                    RisingEdge = True
-                while Vin >= 5.0:
-                    Vin = task.read()
+                    if len(consecutive_Values)>0:
+                         avgConsecutiveHighs = sum(consecutive_Values)/len(consecutive_Values)
 
-            #Log RPM based on high time, or log 0RPM
-                if RisingEdge:
-                    t1_end = perf_counter()
-
-                #RPM calculation based on fixed 49.9% Duty Cycle from M130 with scale of 10.0Hz
-                    rpm = (0.499/(t1_end-t1_start))*60/SCALE
-                #log RPM with timestamp
-                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                    writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'High Time (s)': t1_end-t1_start})
-                else:
-                #log RPM of 0 with timestamp
-                    rpm = 0.0
-                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                    writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'High Time (s)': 0})
-            except nidaqmx.errors.DaqReadError:
-                print("Buffer Overflow")
+                         highTime = avgConsecutiveHighs/100000
+                        #Equation for rpm from duty cycle and measured high time
+                         rpm = 0.5/(highTime)*60/SCALE
+                         #LIMIT TO 10HZ TO PREVENT INSANE STORAGE OVERFLOW
+                         if time.time() - delay_start > 0.1:
+                            delay_start = time.time()
+                            #log RPM with timestamp
+                            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+                            writer.writerow({'Timestamp': timestamp, 'RPM': rpm, 'Frequency (Hz)': 0.499/highTime})
 
 

@@ -2,6 +2,7 @@ import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import csv
 from datetime import datetime
+import time
 
 csv_filename = 'Torque_log.csv'
 
@@ -34,16 +35,20 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         offset = slope*Zero
 
         print("Logging Torque...")
+        delay_start = time.time()
         while True:
             Vin = task.read()*1000
             Force = Vin*slope-offset
             #print(Vin, " mV")
             #print("Force = ", Force, " LB")
 
-            #Get formatted timestamp
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+            #LIMIT TO 10HZ FOR STORAGE
+            if (time.time() - delay_start > 0.1):
+                delay_start = time.time()
+                #Get formatted timestamp
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
-            writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': Vin})
+                writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': Vin})
 
 
 
