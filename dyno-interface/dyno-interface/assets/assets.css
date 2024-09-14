@@ -1,0 +1,33 @@
+/*set default body format*/
+body{
+    padding-top: 0%;
+    margin-top: 0%;
+    background-color: rgb(50, 50, 50);
+}
+
+/*set defualt button format*/
+.button-primary {
+    background-color: snow; /* snow background */
+    border: none; /* no border */
+    color: black; /* black text */
+    padding: 10px 20px; /* some padding */
+    text-align: center; /* centered text */
+    text-decoration: none; /* no text decoration */
+    display: inline-block;
+    font-size: 16px; /* font size */
+    margin: 4px 2px; /* margin between buttons */
+    cursor: pointer; /* cursor on hover */
+    border-radius: 4px; /* rounded corners */
+    transition: background-color 0.3s ease-in-out; /* smooth transition on hover */
+}
+
+/*set default button format when hovering*/
+.button-primary:hover {
+    background-color: gainsboro; /* gainsboro background on hover */
+}
+
+/*set default button format when active*/
+.button-primary:active {
+    background-color: red; /* Darker green background on hover */
+}
+
