@@ -74,7 +74,7 @@ def get_files_in_directory(path) -> list:
 
 
 # initialize the directory path where your files are located
-directory_path = "dyno-interface\data"
+directory_path = "dyno-interface\dyno-interface\data"
 
 # get the list of files from the specified directory (dyno runs)
 files = get_files_in_directory(directory_path)
