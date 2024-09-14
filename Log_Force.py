@@ -23,8 +23,8 @@ with open(csv_filename,mode='w',newline='') as csvfile:
         task.timing.cfg_samp_clk_timing(1000.0)
         task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_RESOLUTION
         
-        Voltage = input("Measure Battery Voltage: ")
-        rt = 'no'
+        #Measured voltage from the supply to the Load Cell
+        Voltage = 12.03
         while rt != 'y':
             rt = input('ready to Tare? y/n')
         Zero = 0
