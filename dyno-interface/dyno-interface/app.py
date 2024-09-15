@@ -33,7 +33,7 @@ def logTorque():
         writer.writeheader()
         with nidaqmx.Task() as task:
     #Define channel to read in voltage
-            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai1",min_val=-0.1,max_val=0.1)
     #read samples continuously
     
             task.timing.cfg_samp_clk_timing(50,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=2)
@@ -79,8 +79,9 @@ def logRPM():
         #100Khz sample rate
             task.timing.cfg_samp_clk_timing(100000,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=1000)
 
-            print("Logging RPM...")
+            
             task.start()
+            print("Logging RPM...")
             delay_start = time.time()
             DataPoints = []
             while not stop_event.is_set():
