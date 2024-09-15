@@ -128,7 +128,8 @@ def save_CSV():
 #Calculate horsepower and remove timestamp from csv for graphing
     merged_df['Horsepower'] = merged_df['Torque (ft-lbs)']*merged_df['RPM']/5252
     merged_df.pop('Timestamp')
-
+    first_row = pd.DataFrame([{'RPM': '0','Torque (ft-lbs)': '0','Horsepower': '0'}])
+    merged_df = pd.concat([first_row,merged_df],ignore_index=True)
 # Generate unique filename from current timestamp
 
     currentTime = str(datetime.now())
