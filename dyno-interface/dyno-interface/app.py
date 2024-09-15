@@ -7,11 +7,138 @@ The UI allows the user to overlay various dyno runs along,
 any changes made to the files in the data directory will automatically
 update in the UI.
 """
-import datetime
 import os
 from dash import Dash, html, dcc, Input, Output, no_update, State
 import pandas as pd
 import plotly.graph_objects as go
+import threading
+import nidaqmx
+from nidaqmx.constants import AcquisitionType
+import csv
+from datetime import datetime
+import time
+import pandas
+
+#The Threading Event that stops logging data    
+stop_event = threading.Event()
+
+#Function to log torque data
+def logTorque():
+    csv_filename = r'data-logging\mostRecentTorque.csv'
+
+    with open(csv_filename,mode='w',newline='') as csvfile:
+        fieldnames = ['Timestamp', 'Torque (Ft-LB)','Voltage (mV)']
+        writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
+
+        writer.writeheader()
+        with nidaqmx.Task() as task:
+    #Define channel to read in voltage
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
+    #read samples continuously
+    
+            task.timing.cfg_samp_clk_timing(50,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=2)
+            task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_SPEED
+        
+        #Measured voltage from the supply to the Load Cell
+            Voltage = 12.04
+
+            Zero = 0.3785
+            slope = 1000/(float(Voltage)*2)
+            offset = slope*Zero
+
+            task.start()
+            print("Logging Torque...")
+            while not stop_event.is_set():
+                Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)*1000
+                if (len(Vin) > 0):
+                    avgVin = sum(Vin)/len(Vin)
+                    Force = avgVin*slope-offset
+
+                #Get formatted timestamp
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                    writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': avgVin})
+            print("Torque Finished")
+            return
+
+#Function to log RPM data
+def logRPM():
+    csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
+    SCALE = 20.0 #Hz
+    THRESHOLD = 0.1 #RISING EDGE THRESHOLD IN VOLTS
+
+    with open(csv_filename,mode='w',newline='') as csvfile:
+        fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
+        writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        with nidaqmx.Task() as task:
+        #Define channel for NI 9205 (pins 1 & 19)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
+        #100Khz sample rate
+            task.timing.cfg_samp_clk_timing(100000,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=1000)
+
+            print("Logging RPM...")
+            task.start()
+            delay_start = time.time()
+            DataPoints = []
+            while not stop_event.is_set():
+                #Read in an array of 1000 samples at 100kHz
+                    Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)
+                    if len(Vin) > 0:
+                #Average the number of consecutive high signals in the array
+                        consecutive_Values = []
+                        current_count = 0
+                        for i in range(len(Vin)):
+                            if (Vin[i] >= THRESHOLD):
+                             current_count += 1
+                            else:
+                                if current_count != 0:
+                                    consecutive_Values.append(current_count)
+                                current_count = 0
+
+                        if len(consecutive_Values)>0:
+                            avgConsecutiveHighs = sum(consecutive_Values)/len(consecutive_Values)
+
+                            highTime = avgConsecutiveHighs/100000
+                        #Equation for rpm from duty cycle and measured high time
+                            rpm = 0.499/(highTime)*60/SCALE
+                         
+                         #LIMIT TO 10HZ TO PREVENT INSANE STORAGE OVERFLOW
+                            DataPoints.append(rpm)
+                            if time.time() - delay_start > 0.1:
+                                delay_start = time.time()
+                            #log average RPM with timestamp
+                                avgrpm = sum(DataPoints)/len(DataPoints)
+                                DataPoints = []
+                                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+                                writer.writerow({'Timestamp': timestamp, 'RPM': avgrpm, 'Frequency (Hz)': SCALE*avgrpm/60})
+            print("RPM Finished")
+            return
+
+def save_CSV():
+    #Open both files and align timestamps
+    df1 = pd.read_csv(r'data-logging\mostRecentRPM.csv',header=0,names=['Timestamp','RPM', 'Voltage (mV)'])
+    df2 = pd.read_csv(r'data-logging\mostRecentTorque.csv',header=0,names=['Timestamp','Torque (ft-lbs)','Frequency (Hz)'])
+    df1.pop('Voltage (mV)')
+    df2.pop('Frequency (Hz)')
+
+    merged_df = pd.merge(df1,df2,on='Timestamp')
+#Calculate horsepower and remove timestamp from csv for graphing
+    merged_df['Horsepower'] = merged_df['Torque (ft-lbs)']*merged_df['RPM']/5252
+    merged_df.pop('Timestamp')
+
+# Generate unique filename from current timestamp
+
+    currentTime = str(datetime.now())
+    filename = r"dyno-interface\dyno-interface\data" + "\\" +  currentTime.split(":")[0] + currentTime.split(":")[1] + currentTime.split(":")[2] + ".csv"
+    merged_df.to_csv(filename,index=False)
+
+    print("Created CSV: ", filename)
+
+
+
 
 
 def plot_data(file: str) -> go.Figure:
@@ -49,7 +176,7 @@ def get_current_datetime() -> str:
     Get the current date and time
     Returns: formatted_date (str): formatted date and time
     """
-    now = datetime.datetime.now()
+    now = datetime.now()
     formatted_date = now.strftime("%m/%d/%Y")
     formatted_time = now.strftime("%H:%M:%S")
 
@@ -361,10 +488,17 @@ def update_record_button_label(n_clicks, current_label):
     is_recording = current_label == "Stop"
 
     if is_recording:
-        # if stop button was clicked, display "Record"
+        # if stop button was clicked, display "Record" and end the threads logging data
+        stop_event.set()
+        save_CSV()
         return "Record"
     else:
-        # if record button was clicked, display "Stop"
+        # if record button was clicked, display "Stop" and start the threads logging data
+        stop_event.clear()
+        torqueThread = threading.Thread(target=logTorque)
+        rpmThread = threading.Thread(target=logRPM)
+        rpmThread.start()
+        torqueThread.start()
         return "Stop"
 
 
