@@ -18,6 +18,7 @@ import csv
 from datetime import datetime
 import time
 import pandas
+from time import perf_counter
 
 #The Threading Event that stops logging data    
 stop_event = threading.Event()
@@ -33,11 +34,11 @@ def logTorque():
         writer.writeheader()
         with nidaqmx.Task() as task:
     #Define channel to read in voltage
-            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai1",min_val=-0.1,max_val=0.1)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
     #read samples continuously
     
-            task.timing.cfg_samp_clk_timing(50,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=2)
-            task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_SPEED
+            task.timing.cfg_samp_clk_timing(1000.0,sample_mode=AcquisitionType.CONTINUOUS)
+            task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_RESOLUTION
         
         #Measured voltage from the supply to the Load Cell
             Voltage = 12.04
@@ -61,11 +62,11 @@ def logTorque():
             print("Torque Finished")
             return
 
-#Function to log RPM data
+#Function to log RPM data via high time
 def logRPM():
     csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
     SCALE = 20.0 #Hz
-    THRESHOLD = 0.1 #RISING EDGE THRESHOLD IN VOLTS
+    THRESHOLD = 4.5 #RISING EDGE THRESHOLD IN VOLTS
 
     with open(csv_filename,mode='w',newline='') as csvfile:
         fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
@@ -101,14 +102,72 @@ def logRPM():
 
                         if len(consecutive_Values)>0:
                             avgConsecutiveHighs = sum(consecutive_Values)/len(consecutive_Values)
-
+                            
+                            #Divided because 100khz sample rate 
                             highTime = avgConsecutiveHighs/100000
                         #Equation for rpm from duty cycle and measured high time
-                            rpm = 0.499/(highTime)*60/SCALE
+                            rpm = 0.5/(highTime)*60/SCALE
                          
-                         #LIMIT TO 10HZ TO PREVENT INSANE STORAGE OVERFLOW
+                         #LIMIT TO 100HZ TO PREVENT INSANE STORAGE OVERFLOW
                             DataPoints.append(rpm)
-                            if time.time() - delay_start > 0.1:
+                            if time.time() - delay_start > 0.01:
+                                delay_start = time.time()
+                            #log average RPM with timestamp
+                                avgrpm = sum(DataPoints)/len(DataPoints)
+                                DataPoints = []
+                                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+                                writer.writerow({'Timestamp': timestamp, 'RPM': avgrpm, 'Frequency (Hz)': SCALE*avgrpm/60})
+            print("RPM Finished")
+            return
+#Function to log RPM data via rising edges
+def logRPM2():
+    csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
+    SCALE = 20.0 #Hz
+    THRESHOLD = 3.0 #RISING EDGE THRESHOLD IN VOLTS
+
+    with open(csv_filename,mode='w',newline='') as csvfile:
+        fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
+        writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        with nidaqmx.Task() as task:
+        #Define channel for NI 9205 (pins 1 & 19)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
+        #100Khz sample rate
+            task.timing.cfg_samp_clk_timing(100000,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=1000)
+
+            
+            task.start()
+            print("Logging RPM...")
+            delay_start = time.time()
+            DataPoints = []
+            while not stop_event.is_set():
+                #Read in an array of 1000 samples at 100kHz
+                    t_start = perf_counter()
+                    Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)
+                    t_end = perf_counter()
+                    if len(Vin) > 0:
+                #Average the number of rising edge signals in the array
+                        delta_t = t_end-t_start
+                        edge_count = 0
+                        for i in range(len(Vin)):
+                            if (Vin[i] >= THRESHOLD):
+                             edge_count += 1
+                            while (Vin[i]>=THRESHOLD*1.1):
+                                i+=1
+
+                        #number of samples/100khz = time that has passed in the array
+                        if edge_count>0:
+                            #frequency = number of rising edges/time passed in the array
+                            frequency = edge_count/delta_t
+
+                        #Equation for rpm from MoTeC
+                            rpm = frequency*60/SCALE
+                         
+                         #LIMIT TO 100HZ TO PREVENT INSANE STORAGE OVERFLOW
+                            DataPoints.append(rpm)
+                            if time.time() - delay_start > 0.01:
                                 delay_start = time.time()
                             #log average RPM with timestamp
                                 avgrpm = sum(DataPoints)/len(DataPoints)
