@@ -1,6 +1,6 @@
 """
-Author: Casey Zandbergen III
-Date: 7/20/2023
+Authors: Joshua Dick, Casey Zandbergen III
+Date: 10/7/2024
 Description: This program creates a Dash app that reads
 in data from a csv file and displays it in a plotly graph.
 The UI allows the user to overlay various dyno runs along,
@@ -18,8 +18,6 @@ from nidaqmx.constants import AcquisitionType
 import csv
 from datetime import datetime, timedelta
 import time
-import pandas
-from time import perf_counter
 import numpy as np
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import boxcar
@@ -27,8 +25,11 @@ from scipy.signal.windows import boxcar
 #The Threading Event that stops logging data    
 stop_event = threading.Event()
 
+
 #Function to log torque data
 def logTorque():
+    global FinishedTorque
+    FinishedTorque=False
     csv_filename = r'data-logging\mostRecentTorque.csv'
 
     with open(csv_filename,mode='w',newline='') as csvfile:
@@ -64,7 +65,9 @@ def logTorque():
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
                     writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': avgVin})
+
             print("Torque Finished")
+            FinishedTorque=True
             return
 
 #Function to log RPM data via high time (DEPRECATED)
@@ -181,6 +184,8 @@ def logRPM2():
             return
 #Function to log rpm based on the Short Time Fourier Tranform of the input signal 
 def FourierRPM():
+    global FinishedRPM
+    FinishedRPM = False
     csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
     SCALE = 20.0 #Hz
 
@@ -195,7 +200,7 @@ def FourierRPM():
             task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
         #250Khz sample rate
             fs = 250000 #Sample Rate
-            task.timing.cfg_samp_clk_timing(fs,sample_mode=AcquisitionType.FINITE,samps_per_chan=fs*5)
+            task.timing.cfg_samp_clk_timing(fs,sample_mode=AcquisitionType.FINITE,samps_per_chan=fs*10)
 
             print("Logging RPM...")
             
@@ -204,17 +209,18 @@ def FourierRPM():
                 task.start()
                 #Current Timestamp when data collection starts
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                #Read in an array of 250k*5 samples at 250kHz until 5 seconds has passed
-                Vin = task.read(number_of_samples_per_channel=fs*5,timeout=5.05)
+                #Read in an array of 250k*10 samples at 250kHz until 10 seconds has passed
+                Vin = task.read(number_of_samples_per_channel=fs*10,timeout=10.05)
                 task.stop()
 
                 if len(Vin) > 0:
-                    #Compute Short Time Fourier Transform of signal array over 5 seconds
+                    #Compute Short Time Fourier Transform of signal array over 10 seconds
                     nparray = np.array(Vin)
                     #Subtract DC Component of Square Wave w/ 50% duty cycle, 5V peak:
                     nparray = nparray-2.5
-                    window = boxcar(32768) #2^15 sample window function for efficiency
-                    SFT = ShortTimeFFT(win=window,hop=5000,fs=fs,scale_to='magnitude') #SciPy STFT
+                    window = boxcar(8192) #2^13 sample window function for efficiency 
+                    #hop=100 allows 1250hz frequency data collection
+                    SFT = ShortTimeFFT(win=window,hop=100,fs=fs,scale_to='magnitude') #SciPy STFT 
                     Sx = SFT.stft(nparray)
                     #Extract only the frequency with the strongest magnitude at each time
                     strongest_indices = np.argmax(abs(Sx),axis=0)
@@ -227,13 +233,20 @@ def FourierRPM():
                     for i,rpm in enumerate(RPMS):
                         delta_t = i*SFT.delta_t
 
-                        tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(seconds=delta_t) #Change in time is stored in the times array
+                        tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(seconds=delta_t) #Change in time is stored in the delta_t
                         tstamp = tstamp.strftime('%Y-%m-%d %H:%M:%S.%f')
                         writer.writerow({'Timestamp': tstamp, 'RPM': rpm, 'Frequency (Hz)': strongest_frequencies[i]})
-
+            
+            FinishedRPM=True
             print("RPM Finished")
             return
 def save_CSV():
+    global FinishedRPM
+    global FinishedTorque
+    #Wait until both torque and rpm logging is done to save csv
+    while not (FinishedRPM and FinishedTorque):
+        time.sleep(0.4)
+        pass
     #Open both files and align timestamps
     df1 = pd.read_csv(r'data-logging\mostRecentRPM.csv',header=0,names=['Timestamp','RPM', 'Voltage (mV)'])
     df2 = pd.read_csv(r'data-logging\mostRecentTorque.csv',header=0,names=['Timestamp','Torque (ft-lbs)','Frequency (Hz)'])
@@ -253,8 +266,6 @@ def save_CSV():
     merged_df.to_csv(filename,index=False)
 
     print("Created CSV: ", filename)
-
-
 
 
 
@@ -328,6 +339,8 @@ dyno_graph = plot_data(directory_path + "/" + files[0])
 
 # initialize Dash app
 app = Dash(__name__)
+FinishedRPM = False
+FinishedTorque = False
 
 # format app layout
 app.layout = html.Div(
@@ -607,7 +620,8 @@ def update_record_button_label(n_clicks, current_label):
     if is_recording:
         # if stop button was clicked, display "Record" and end the threads logging data
         stop_event.set()
-        save_CSV()
+        save = threading.Thread(target=save_CSV)
+        save.start()
         return "Record"
     else:
         # if record button was clicked, display "Stop" and start the threads logging data
