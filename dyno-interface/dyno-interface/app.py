@@ -21,6 +21,8 @@ import time
 import pandas
 from time import perf_counter
 import numpy as np
+from scipy.signal import ShortTimeFFT
+from scipy.signal.windows import boxcar
 
 #The Threading Event that stops logging data    
 stop_event = threading.Event()
@@ -36,10 +38,10 @@ def logTorque():
         writer.writeheader()
         with nidaqmx.Task() as task:
     #Define channel to read in voltage
-            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.1,max_val=0.1)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-60,max_val=60)
     #read samples continuously
     
-            task.timing.cfg_samp_clk_timing(1000.0,sample_mode=AcquisitionType.CONTINUOUS)
+            task.timing.cfg_samp_clk_timing(50.0,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=2)
             task.ai_channels.ai_adc_timing_mode=nidaqmx.constants.ADCTimingMode.HIGH_RESOLUTION
         
         #Measured voltage from the supply to the Load Cell
@@ -52,10 +54,11 @@ def logTorque():
             task.start()
             print("Logging Torque...")
             while not stop_event.is_set():
-                Vin = task.read(number_of_samples_per_channel = nidaqmx.constants.READ_ALL_AVAILABLE)*1000
+                Vin = task.read(number_of_samples_per_channel=nidaqmx.constants.READ_ALL_AVAILABLE)*1000
                 if (len(Vin) > 0):
                     avgVin = sum(Vin)/len(Vin)
                     Force = avgVin*slope-offset
+                #Force = Vin*slope-offset
 
                 #Get formatted timestamp
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -64,7 +67,7 @@ def logTorque():
             print("Torque Finished")
             return
 
-#Function to log RPM data via high time
+#Function to log RPM data via high time (DEPRECATED)
 def logRPM():
     csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
     SCALE = 20.0 #Hz
@@ -121,7 +124,7 @@ def logRPM():
                                 writer.writerow({'Timestamp': timestamp, 'RPM': avgrpm, 'Frequency (Hz)': SCALE*avgrpm/60})
             print("RPM Finished")
             return
-#Function to log RPM data via rising edges
+#Function to log RPM data via rising edges (DEPRECATED)
 def logRPM2():
     csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
     SCALE = 20.0 #Hz
@@ -155,7 +158,7 @@ def logRPM2():
                 if len(Vin) > 0:
                     #Split array of 250k*5 samples in 5 seconds into 250 arrays for every 1/50th of a second (This improves data collection speed)
                     nparray = np.array(Vin)
-                    split_arrays = np.array_split(nparray,250)
+                    split_arrays = np.array_split(nparray,125)
 
                     for i, arr in enumerate(split_arrays):
                     #find the number of rising edge signals in the array
@@ -165,18 +168,71 @@ def logRPM2():
                     #number of samples/250khz = time that has passed in the array
                         if rising_edges>0:
                         #frequency = number of rising edges/time passed in the array
-                            frequency = rising_edges/0.02
+                            frequency = rising_edges/(len(arr)*0.000004)
 
                         #Equation for rpm from MoTeC
                             rpm = frequency*60/SCALE
                             #Timestamp manipulation to increment by 10ms for each data point
-                            tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(milliseconds=i*20)
+                            tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(milliseconds=i*len(arr)*0.004)
                             tstamp = tstamp.strftime('%Y-%m-%d %H:%M:%S.%f')
                             writer.writerow({'Timestamp': tstamp, 'RPM': rpm, 'Frequency (Hz)': SCALE*rpm/60})
 
             print("RPM Finished")
             return
+#Function to log rpm based on the Short Time Fourier Tranform of the input signal 
+def FourierRPM():
+    csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
+    SCALE = 20.0 #Hz
 
+    with open(csv_filename,mode='w',newline='') as csvfile:
+        fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
+        writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        with nidaqmx.Task() as task:
+        #Define channel for NI 9205 (pins 1 & 19)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
+        #250Khz sample rate
+            fs = 250000 #Sample Rate
+            task.timing.cfg_samp_clk_timing(fs,sample_mode=AcquisitionType.FINITE,samps_per_chan=fs*5)
+
+            print("Logging RPM...")
+            
+            while not stop_event.is_set():
+                Vin = []
+                task.start()
+                #Current Timestamp when data collection starts
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+                #Read in an array of 250k*5 samples at 250kHz until 5 seconds has passed
+                Vin = task.read(number_of_samples_per_channel=fs*5,timeout=5.05)
+                task.stop()
+
+                if len(Vin) > 0:
+                    #Compute Short Time Fourier Transform of signal array over 5 seconds
+                    nparray = np.array(Vin)
+                    #Subtract DC Component of Square Wave w/ 50% duty cycle, 5V peak:
+                    nparray = nparray-2.5
+                    window = boxcar(32768) #2^15 sample window function for efficiency
+                    SFT = ShortTimeFFT(win=window,hop=5000,fs=fs,scale_to='magnitude') #SciPy STFT
+                    Sx = SFT.stft(nparray)
+                    #Extract only the frequency with the strongest magnitude at each time
+                    strongest_indices = np.argmax(abs(Sx),axis=0)
+                    strongest_frequencies = strongest_indices*SFT.delta_f #This comes from the SciPy documentation
+
+                    #Equation for RPM from MoTeC based on tachometer output
+                    RPMS = strongest_frequencies*60/SCALE
+
+                    #Iterate through rpms and write data to csv with corresponding timestamp & frequency
+                    for i,rpm in enumerate(RPMS):
+                        delta_t = i*SFT.delta_t
+
+                        tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(seconds=delta_t) #Change in time is stored in the times array
+                        tstamp = tstamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+                        writer.writerow({'Timestamp': tstamp, 'RPM': rpm, 'Frequency (Hz)': strongest_frequencies[i]})
+
+            print("RPM Finished")
+            return
 def save_CSV():
     #Open both files and align timestamps
     df1 = pd.read_csv(r'data-logging\mostRecentRPM.csv',header=0,names=['Timestamp','RPM', 'Voltage (mV)'])
@@ -557,7 +613,7 @@ def update_record_button_label(n_clicks, current_label):
         # if record button was clicked, display "Stop" and start the threads logging data
         stop_event.clear()
         torqueThread = threading.Thread(target=logTorque)
-        rpmThread = threading.Thread(target=logRPM2)
+        rpmThread = threading.Thread(target=FourierRPM)
         rpmThread.start()
         torqueThread.start()
         return "Stop"
