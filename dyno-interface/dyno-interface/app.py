@@ -39,7 +39,7 @@ def logTorque():
         writer.writeheader()
         with nidaqmx.Task() as task:
     #Define channel to read in voltage
-            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-60,max_val=60)
+            task.ai_channels.add_ai_voltage_chan("cDAQ1Mod1/ai0",min_val=-0.125,max_val=0.125)
     #read samples continuously
     
             task.timing.cfg_samp_clk_timing(50.0,sample_mode=AcquisitionType.CONTINUOUS,samps_per_chan=2)
@@ -48,16 +48,17 @@ def logTorque():
         #Measured voltage from the supply to the Load Cell
             Voltage = 12.04
 
-            Zero = 0.3785
+            Zero = 1.2
             slope = 1000/(float(Voltage)*2)
             offset = slope*Zero
 
             task.start()
             print("Logging Torque...")
             while not stop_event.is_set():
-                Vin = task.read(number_of_samples_per_channel=nidaqmx.constants.READ_ALL_AVAILABLE)*1000
+                Vin = task.read(number_of_samples_per_channel=nidaqmx.constants.READ_ALL_AVAILABLE)
                 if (len(Vin) > 0):
                     avgVin = sum(Vin)/len(Vin)
+                    avgVin = avgVin*1000
                     Force = avgVin*slope-offset
                 #Force = Vin*slope-offset
 
