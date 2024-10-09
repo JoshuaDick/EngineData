@@ -63,9 +63,12 @@ def logTorque():
                 #Force = Vin*slope-offset
 
                 #Get formatted timestamp
+                        
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-
-                    writer.writerow({'Timestamp': timestamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': avgVin})
+                    tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')
+                    tstamp = tstamp.replace(microsecond=round(tstamp.microsecond/10000)*1000)
+                    tstamp = tstamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    writer.writerow({'Timestamp': tstamp, 'Torque (Ft-LB)': Force, 'Voltage (mV)': avgVin})
 
             print("Torque Finished")
             FinishedTorque=True
@@ -188,45 +191,46 @@ def FourierRPM():
     global FinishedRPM
     FinishedRPM = False
     csv_filename = r'data-logging\mostRecentRPM.csv' #name of file to log data into
-    SCALE = 20.0 #Hz
+    SCALE = 60.0 #Hz
 
     with open(csv_filename,mode='w',newline='') as csvfile:
         fieldnames = ['Timestamp', 'RPM','Frequency (Hz)']
         writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
 
         writer.writeheader()
-
+        all_data = []
         with nidaqmx.Task() as task:
         #Define channel for NI 9205 (pins 1 & 19)
             task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
         #250Khz sample rate
             fs = 250000 #Sample Rate
-            task.timing.cfg_samp_clk_timing(fs,sample_mode=AcquisitionType.FINITE,samps_per_chan=fs*10)
+            task.timing.cfg_samp_clk_timing(fs,sample_mode=AcquisitionType.FINITE,samps_per_chan=int(fs*15))
 
-            print("Logging RPM...")
+            
             
             while not stop_event.is_set():
                 Vin = []
+                print("Logging RPM...")
                 task.start()
                 #Current Timestamp when data collection starts
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
                 #Read in an array of 250k*10 samples at 250kHz until 10 seconds has passed
-                Vin = task.read(number_of_samples_per_channel=fs*10,timeout=10.05)
+                Vin = task.read(number_of_samples_per_channel=int(fs*15),timeout=15.1)
                 task.stop()
-
+                print("15 second interval recorded")
                 if len(Vin) > 0:
                     #Compute Short Time Fourier Transform of signal array over 10 seconds
                     nparray = np.array(Vin)
-                    #Subtract DC Component of Square Wave w/ 50% duty cycle, 5V peak:
-                    nparray = nparray-2.5
-                    window = boxcar(8192) #2^13 sample window function for efficiency 
-                    #hop=100 allows 1250hz frequency data collection
-                    SFT = ShortTimeFFT(win=window,hop=100,fs=fs,scale_to='magnitude') #SciPy STFT 
+                    #Subtract DC Component of Waveform:
+                    nparray = nparray-np.mean(nparray)
+                    window = boxcar(50000) #2^13 sample window function for efficiency 
+                    #hop=2500 allows 100hz frequency data collection
+                    SFT = ShortTimeFFT(win=window,hop=1000,fs=fs,scale_to='magnitude') #SciPy STFT 
                     Sx = SFT.stft(nparray)
                     #Extract only the frequency with the strongest magnitude at each time
                     strongest_indices = np.argmax(abs(Sx),axis=0)
                     strongest_frequencies = strongest_indices*SFT.delta_f #This comes from the SciPy documentation
-
+                    
                     #Equation for RPM from MoTeC based on tachometer output
                     RPMS = strongest_frequencies*60/SCALE
 
@@ -235,9 +239,11 @@ def FourierRPM():
                         delta_t = i*SFT.delta_t
 
                         tstamp = datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S.%f')+timedelta(seconds=delta_t) #Change in time is stored in the delta_t
+                        tstamp = tstamp.replace(microsecond=round(tstamp.microsecond/10000)*1000)
                         tstamp = tstamp.strftime('%Y-%m-%d %H:%M:%S.%f')
                         writer.writerow({'Timestamp': tstamp, 'RPM': rpm, 'Frequency (Hz)': strongest_frequencies[i]})
-            
+            #for rows in all_data:
+               # writer.writerow(rows)
             FinishedRPM=True
             print("RPM Finished")
             return
