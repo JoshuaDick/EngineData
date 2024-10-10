@@ -17,5 +17,5 @@ Torque is collected by the NI-9219. RPM is collected by the NI-9205. The details
 6. You are now set up and ready to run the main.py. Make sure to activate your virtual environment with venv\Scripts\activate when you launch your IDE or terminal.
 7. To deactivate, simply type: deactivate
 
-8. If the venv doesn't work to recognize the installed libraries (IDEs tend to be trashy sometimes) just do pip install -r requirements.txt without the venv
+8. If the venv doesn't work to recognize the installed libraries (IDEs tend to be trashy despite being developed by large amounts of well-paid software developers) just do pip install -r requirements.txt without the venv
 
