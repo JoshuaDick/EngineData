@@ -3,9 +3,9 @@ import threading
 
 
 def plotRPM():
-    subprocess.run(['python',r'dyno-interface\Quick&Dirty\liveRPM.py'])
+    subprocess.run(['python',r'dyno-interface\\Quick&Dirty\\liveRPM.py'])
 def plotTorque():
-    subprocess.run(['python',r'dyno-interface\Quick&Dirty\liveTorque.py'])
+    subprocess.run(['python',r'dyno-interface\\Quick&Dirty\\liveTorque.py'])
 
 
 if __name__ == "__main__":

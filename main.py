@@ -8,7 +8,7 @@ def run_process(process_number):
     root.withdraw()
 
         # Add a button to return to the main window
-    new_window.protocol("WM_DELETE_WINDOW", lambda:doNothing)
+    new_window.protocol("WM_DELETE_WINDOW", lambda:doNothing())
     back_button = tk.Button(new_window, text="Back to Main", command=lambda:returnToMain(process,new_window))
     back_button.pack(pady=5)
     # Instead of running the subprocess directly, open a new window
@@ -16,12 +16,12 @@ def run_process(process_number):
         new_window.title("Live RPM & Torque")
         label = tk.Label(new_window, text="Running Live RPM & Torque...")
         label.pack(pady=10)
-        process = subprocess.Popen(['python',r'dyno-interface\Quick&Dirty\LivePlotter.py'])  # Simulate running a process
+        process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\LivePlotter.py'])  # Simulate running a process
     else:
         new_window.title("Recording Interface")
         label = tk.Label(new_window, text="Running Recording Interface...")
         label.pack(pady=10)
-        process = subprocess.Popen(["python",r'dyno-interface\dyno-interface\app.py'])  # Simulate running a process
+        process = subprocess.Popen(["python",r'dyno-interface\\dyno-interface\\app.py'])  # Simulate running a process
         webbrowser.open("http://127.0.0.1:8050/")
 
 
