@@ -7,15 +7,18 @@ from nidaqmx.constants import AcquisitionType
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import boxcar
 import warnings
-import psutil, os, time
+import os
 
 
+def move_figure(f, x, y):
+    """Move figure's upper left corner to pixel (x, y)"""
+    f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
 def ShowLiveRPM():
     global anim
-    fig2,ax2 = plt2.subplots(num='Live RPM ;)')
-
+    fig2,ax2 = plt2.subplots(num='Live RPM ;)',figsize=(8,6))
     plt2.title("RPM")
+    move_figure(fig2,200,100)
 
     x=[]
     y=[]

@@ -4,18 +4,18 @@ import nidaqmx.constants
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import warnings
-import psutil, os, time
+import os
 
 
 
-
-me = psutil.Process(os.getpid())
+def move_figure(f, x, y):
+    """Move figure's upper left corner to pixel (x, y)"""
+    f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
 def ShowLiveTorque():
     fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(8,6))
     plt.title("Torque")
-
-
+    move_figure(fig1,1000,100)
     x=[]
     y=[]
     with nidaqmx.Task() as task:
@@ -55,11 +55,4 @@ def ShowLiveTorque():
 warnings.filterwarnings("ignore")
 
 ShowLiveTorque()
-while 1:
-    if me.parent() is not None:
-        # still alive
-        time.sleep(0.1)
-        continue
-    else:
-        os._exit(0)
-        break
+os._exit(0)
