@@ -3,7 +3,7 @@ import matplotlib.animation as animation
 import nidaqmx.constants
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
-from datetime import datetime
+import warnings
 
 
 
@@ -50,5 +50,7 @@ def ShowLiveTorque():
         anim=animation.FuncAnimation(fig1,animate,interval=10)
         
         plt.show()
+        
+warnings.filterwarnings("ignore")
 
 ShowLiveTorque()

@@ -6,6 +6,7 @@ import nidaqmx
 from nidaqmx.constants import AcquisitionType
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import boxcar
+import warnings
 
 
 
@@ -53,4 +54,5 @@ def ShowLiveRPM():
         anim=animation2.FuncAnimation(fig2,animate2,interval=50)
         plt2.show()
 
+warnings.filterwarnings("ignore")
 ShowLiveRPM()
