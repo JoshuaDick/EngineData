@@ -4,11 +4,12 @@ import nidaqmx.constants
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import warnings
+import psutil, os, time
 
 
 
 
-
+me = psutil.Process(os.getpid())
 
 def ShowLiveTorque():
     fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(8,6))
@@ -54,3 +55,11 @@ def ShowLiveTorque():
 warnings.filterwarnings("ignore")
 
 ShowLiveTorque()
+while 1:
+    if me.parent() is not None:
+        # still alive
+        time.sleep(0.1)
+        continue
+    else:
+        os._exit(0)
+        break

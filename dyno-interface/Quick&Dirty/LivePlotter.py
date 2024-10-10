@@ -1,6 +1,7 @@
 import subprocess
 import threading
 
+
 def plotRPM():
     subprocess.run(['python',r'dyno-interface\Quick&Dirty\liveRPM.py'])
 def plotTorque():

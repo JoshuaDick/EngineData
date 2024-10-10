@@ -7,10 +7,12 @@ from nidaqmx.constants import AcquisitionType
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import boxcar
 import warnings
+import psutil, os, time
 
 
 
 def ShowLiveRPM():
+    global anim
     fig2,ax2 = plt2.subplots(num='Live RPM ;)')
 
     plt2.title("RPM")
@@ -56,3 +58,4 @@ def ShowLiveRPM():
 
 warnings.filterwarnings("ignore")
 ShowLiveRPM()
+os._exit(0)
