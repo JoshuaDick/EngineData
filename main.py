@@ -90,22 +90,7 @@ def update(ind):
 root = tk.Tk()
 frameCnt = 45
 
-#frames = [PhotoImage(file='BHFO.gif',format = 'gif -index %i' %(i)) for i in range(frameCnt)]
 frame_directory = 'frames_cache'
-""" 
-if not os.path.exists(frame_directory):
-    os.makedirs(frame_directory)
-
-# Save the frames to individual image files
-for i in range(frameCnt):
-    frame = PhotoImage(file='BHFO.gif', format='gif -index %i' % i)
-        # Convert the PhotoImage object to a Pillow Image object
-    pil_image = Image.open('BHFO.gif')
-    pil_image.seek(i)  # Seek to the correct frame in the GIF
-
-    # Save the frame as a separate file
-    pil_image.save(os.path.join(frame_directory, f"frame_{i}.gif")) """
-
 
 # Load the cached frames
 frames = [PhotoImage(file=os.path.join(frame_directory, f"frame_{i}.gif")) for i in range(frameCnt)]
