@@ -2,6 +2,24 @@ import subprocess
 import tkinter as tk
 import psutil
 import webbrowser
+import platform
+import ctypes as ct
+from tkinter import PhotoImage
+from PIL import Image, ImageTk
+from tkinter import Label
+import os
+
+def dark_title_bar(window):
+    #print(platform.platform())
+    if 'Windows' in platform.platform():
+        window.update()
+        set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
+        get_parent = ct.windll.user32.GetParent
+        hwnd = get_parent(window.winfo_id())
+        value = 2
+        value = ct.c_int(value)
+        set_window_attribute(hwnd, 20, ct.byref(value), 4)
+
 
 def run_process(process_number):
     new_window = tk.Toplevel(root)
@@ -55,19 +73,59 @@ def on_live_rpm():
 
 def on_recording_interface():
     run_process(2)
+    
+
+
+def update(ind):
+
+    frame = frames[ind]
+    ind += 1
+    if ind == frameCnt:
+        ind = 0
+    label2.configure(image=frame)
+    root.after(25, update, ind)
+    
+    
 # Create the main window
 root = tk.Tk()
-root.title("Dyno Interface")
-root.geometry("400x400")
-# Create a label
-label = tk.Label(root, text="Welcome to the Dyno Interface.")
-label.pack(pady=10)
-# Create buttons for selection
-live_rpm_button = tk.Button(root, text="Live RPM & Torque", command=on_live_rpm)
-recording_button = tk.Button(root, text="Launch Recording Interface", command=on_recording_interface)
+frameCnt = 45
 
+#frames = [PhotoImage(file='BHFO.gif',format = 'gif -index %i' %(i)) for i in range(frameCnt)]
+frame_directory = 'frames_cache'
+""" 
+if not os.path.exists(frame_directory):
+    os.makedirs(frame_directory)
+
+# Save the frames to individual image files
+for i in range(frameCnt):
+    frame = PhotoImage(file='BHFO.gif', format='gif -index %i' % i)
+        # Convert the PhotoImage object to a Pillow Image object
+    pil_image = Image.open('BHFO.gif')
+    pil_image.seek(i)  # Seek to the correct frame in the GIF
+
+    # Save the frame as a separate file
+    pil_image.save(os.path.join(frame_directory, f"frame_{i}.gif")) """
+
+
+# Load the cached frames
+frames = [PhotoImage(file=os.path.join(frame_directory, f"frame_{i}.gif")) for i in range(frameCnt)]
+root.configure(bg='black')
+label2 = Label(root,bg='black')
+
+label2.config(text="Background")
+label2.place(relx=0.5,rely=0.5,anchor=tk.CENTER)
+root.title("Dyno Interface")
+root.geometry("500x500")
+# Create a label
+label = tk.Label(root, text="Welcome to the Dyno Interface.",bg='black',fg='white',font=('Times',25))
+label.pack(pady=(0,25))
+# Create buttons for selection
+live_rpm_button = tk.Button(root, text="Live RPM & Torque", command=on_live_rpm, bg='gray9',fg='white',font='Times')
+recording_button = tk.Button(root, text="Launch Recording Interface", command=on_recording_interface, bg='gray9',fg='white',font='Times')
 live_rpm_button.pack(pady=5)
 recording_button.pack(pady=5)
-
+root.resizable(False,False)
+dark_title_bar(root)
+root.after(0, update, 0)
 # Run the GUI event loop
 root.mainloop()
