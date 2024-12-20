@@ -57,6 +57,7 @@ def ShowLiveRPM():
                 plt2.ylabel('RPM')
                     
         anim=animation2.FuncAnimation(fig2,animate2,interval=50)
+        ax2.set_facecolor('lightgray')
         plt2.show()
 
 warnings.filterwarnings("ignore")

@@ -49,7 +49,7 @@ def ShowLiveTorque():
             
 
         anim=animation.FuncAnimation(fig1,animate,interval=10)
-        
+        ax1.set_facecolor('lightgray')
         plt.show()
         
 warnings.filterwarnings("ignore")
