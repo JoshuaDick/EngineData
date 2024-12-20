@@ -5,7 +5,6 @@ import webbrowser
 import platform
 import ctypes as ct
 from tkinter import PhotoImage
-from PIL import Image, ImageTk
 from tkinter import Label
 import os
 
