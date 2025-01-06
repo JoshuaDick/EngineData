@@ -24,7 +24,7 @@ def ShowLiveRPM():
     y=[]
     SCALE = 60.0
     window = boxcar(1250)
-    fs = 250000 #Sample Rate
+    fs = 250000
     SFT = ShortTimeFFT(win=window,hop=100,fs=fs,scale_to='magnitude') 
     with nidaqmx.Task() as task:
         task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0",min_val=0,max_val=10)
