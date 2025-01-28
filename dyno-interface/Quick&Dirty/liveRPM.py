@@ -12,7 +12,6 @@ import math
 import platform
 import ctypes as ct
 import matplotlib
-import sys
 
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
