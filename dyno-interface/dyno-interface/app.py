@@ -343,6 +343,28 @@ files = get_files_in_directory(directory_path)
 
 # load data
 dyno_graph = plot_data(directory_path + "/" + files[0])
+dyno_graph.update_layout(
+        # format x-axis
+        xaxis_title="RPM",
+        xaxis_dtick=1000,
+        xaxis_tickformat=",.0f",
+        xaxis_tickangle=45,
+        xaxis_gridcolor="gray",
+        xaxis_color="snow",
+        # format y-axis
+        yaxis_title="HP/Torque",
+        yaxis_dtick=10,
+        yaxis_color="snow",
+        yaxis_gridcolor="gray",
+        # format template
+        template="plotly_dark",
+        # format legend
+        legend_borderwidth=1.5,
+        legend_bordercolor="snow",
+        # format plot and paper background
+        plot_bgcolor="rgb(50, 50, 50)",
+        paper_bgcolor="rgb(50, 50, 50)",
+    )
 
 # initialize Dash app
 app = Dash(__name__)
@@ -387,62 +409,8 @@ app.layout = html.Div(
                 figure=dyno_graph,
                 style={
                     "height": "60vh",
-                    "margin-top": 0,
+                    "margin-top": 0
                 },
-            )
-        ),
-        # timing method
-        html.Div(
-            html.H3(
-                "Timing Method",
-                style={
-                    "color": "snow",
-                    "text-align": "left",
-                    "margin-bottom": 0,
-                    "text-decoration": "underline",
-                    "font-family": "open sans",
-                },
-            )
-        ),
-        # timing method radio buttons
-        html.Div(
-            dcc.RadioItems(
-                [
-                    # cam position sensor radio button
-                    {
-                        "label": [
-                            html.Span(
-                                "Cam Position Sensor",
-                                style={
-                                    "color": "snow",
-                                    "padding-left": 10,
-                                    "font-family": "open sans",
-                                },
-                            ),
-                        ],
-                        "value": "cam-position-sensor",
-                    },
-                    # wasted spark radio button
-                    {
-                        "label": [
-                            html.Span(
-                                "Wasted Spark",
-                                style={
-                                    "color": "snow",
-                                    "padding-left": 10,
-                                    "font-family": "open sans",
-                                },
-                            )
-                        ],
-                        "value": "wasted-spark",
-                    },
-                ],
-                labelStyle={
-                    "display": "flex",
-                    "align-items": "center",
-                    "padding-top": 10,
-                },
-                value="cam-position-sensor",
             )
         ),
         # dyno controls
@@ -457,8 +425,8 @@ app.layout = html.Div(
             ],
             style={
                 "position": "absolute",
-                "bottom": "11.5%",
-                "left": "30%",
+                "bottom": "12%",
+                "left": "10%",
                 "font-family": "open sans",
             },
         ),
@@ -476,7 +444,7 @@ app.layout = html.Div(
             style={
                 "position": "absolute",
                 "bottom": "12%",
-                "left": "37%",
+                "left": "40%",
                 "width": "20%",
                 "font-family": "open sans",
             },
@@ -507,7 +475,7 @@ def update_graph(selected_files):
     Returns: fig (go.Figure): plotly figure
     """
 
-    # if no files are selected, return no_update
+    # if no files are selected, return 
     if selected_files is None:
         return no_update
 
