@@ -47,7 +47,8 @@ def ShowLiveRPM():
                     strongest_frequencies = strongest_indices*SFT.delta_f
                     RPMS = strongest_frequencies*60/SCALE
                     avgRPM = sum(RPMS)/len(RPMS)
-                    if (20*math.log10(max(abs(Sx))) < 50):
+                    #define dBm cutoff to prevent noise from affecting the signal
+                    if (20*math.log10(abs(Sx).max()) < -30):
                          avgRPM = 0
                     x.append(i)
                     y.append(avgRPM)

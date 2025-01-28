@@ -128,6 +128,7 @@ dark_title_bar(root)
 root.after(0, update, 0)
 root.withdraw()
 root.deiconify()
+root.focus()
 # Run the GUI event loop
 root.mainloop()
 
