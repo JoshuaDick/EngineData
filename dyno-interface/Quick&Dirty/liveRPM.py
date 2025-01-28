@@ -9,7 +9,18 @@ from scipy.signal.windows import hann
 import warnings
 import os
 import math
+import platform
+import ctypes as ct
 
+def dark_title_bar(window):
+    if 'Windows' in platform.platform():
+        window.update()
+        set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
+        get_parent = ct.windll.user32.GetParent
+        hwnd = get_parent(window.winfo_id())
+        value = 2
+        value = ct.c_int(value)
+        set_window_attribute(hwnd, 20, ct.byref(value), 4)
 def move_figure(f, x, y):
     """Move figure's upper left corner to pixel (x, y)"""
     f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
@@ -21,7 +32,8 @@ def ShowLiveRPM():
     plt2.title("RPM")
     
     move_figure(fig2, 200, 100)
-    
+    dark_title_bar(fig2.canvas.manager.window)
+    fig2.canvas.toolbar.pack_forget()
     x = []
     y = []
     SCALE = 60.0

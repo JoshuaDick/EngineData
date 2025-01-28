@@ -5,6 +5,18 @@ import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import warnings
 import os
+import platform
+import ctypes as ct
+
+def dark_title_bar(window):
+    if 'Windows' in platform.platform():
+        window.update()
+        set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
+        get_parent = ct.windll.user32.GetParent
+        hwnd = get_parent(window.winfo_id())
+        value = 2
+        value = ct.c_int(value)
+        set_window_attribute(hwnd, 20, ct.byref(value), 4)
 
 
 
@@ -17,6 +29,8 @@ def ShowLiveTorque():
     fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(8,6))
     plt.title("Torque")
     move_figure(fig1,1000,100)
+    dark_title_bar(fig1.canvas.manager.window)
+    fig1.canvas.toolbar.pack_forget()
     x=[]
     y=[]
     with nidaqmx.Task() as task:
