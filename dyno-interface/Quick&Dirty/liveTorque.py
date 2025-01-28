@@ -7,6 +7,7 @@ import warnings
 import os
 import platform
 import ctypes as ct
+import matplotlib
 
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
@@ -67,7 +68,8 @@ def ShowLiveTorque():
         anim=animation.FuncAnimation(fig1,animate,interval=10)
         ax1.set_facecolor('black')
         plt.show()
-        
+
+matplotlib.use('TkAgg')
 warnings.filterwarnings("ignore")
 
 ShowLiveTorque()

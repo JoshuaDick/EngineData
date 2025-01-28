@@ -11,6 +11,8 @@ import os
 import math
 import platform
 import ctypes as ct
+import matplotlib
+import sys
 
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
@@ -94,7 +96,7 @@ def ShowLiveRPM():
         ax2.set_facecolor('lightgray')
 
         plt2.show()
-
+matplotlib.use('TkAgg')
 warnings.filterwarnings("ignore")
 ShowLiveRPM()
 os._exit(0)

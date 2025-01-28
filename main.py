@@ -32,6 +32,7 @@ def run_process(process_number):
     new_window.protocol("WM_DELETE_WINDOW", lambda:doNothing())
     back_button = tk.Button(new_window, text="Back to Main", command=lambda:returnToMain(processes,new_window),bg='black',fg='white',activebackground='navy',activeforeground='white')
     back_button.pack(pady=5)
+    new_window.geometry("+0+0")
    
     if process_number == 1:
         new_window.title("Live RPM & Torque")
