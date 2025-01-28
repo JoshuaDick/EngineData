@@ -13,6 +13,7 @@ def move_figure(f, x, y):
     f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
 def ShowLiveTorque():
+    plt.style.use('dark_background')
     fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(8,6))
     plt.title("Torque")
     move_figure(fig1,1000,100)
@@ -45,11 +46,12 @@ def ShowLiveTorque():
             plt.xlabel('Sample #')
             plt.ylabel('Torque (Ft-LB)')
             ax1.plot(x,y)
+            
             ax1.set_title("Torque")
             
 
         anim=animation.FuncAnimation(fig1,animate,interval=10)
-        ax1.set_facecolor('lightgray')
+        ax1.set_facecolor('black')
         plt.show()
         
 warnings.filterwarnings("ignore")
