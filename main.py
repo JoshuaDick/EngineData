@@ -126,6 +126,17 @@ recording_button.pack(pady=20)
 root.resizable(False,False)
 dark_title_bar(root)
 root.after(0, update, 0)
+
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+
+x = (screen_width / 2) - (root.winfo_reqwidth() / 2)
+y = (screen_height / 2) - (root.winfo_reqheight() / 2)
+
+
+root.geometry(f"+{int(x)}+{int(y*0.5)}")
+
 root.withdraw()
 root.deiconify()
 root.focus()
