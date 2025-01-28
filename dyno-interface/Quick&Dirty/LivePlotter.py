@@ -7,7 +7,7 @@ def plotRPM():
 def plotTorque():
     subprocess.run(['python',r'dyno-interface\\Quick&Dirty\\liveTorque.py'])
 def plotHP():
-    subprocess.run(['python',r'dyno-interface\\Quick&Dirty\\liveTorque.py'])
+    subprocess.run(['python',r'dyno-interface\\Quick&Dirty\\liveHorsepower.py'])
 
 
 if __name__ == "__main__":
