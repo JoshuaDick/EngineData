@@ -18,6 +18,7 @@ def ShowLiveRPM():
     global anim
     fig2,ax2 = plt2.subplots(num='Live RPM ;)',figsize=(8,6))
     plt2.title("RPM")
+    plt2.color='red'
     move_figure(fig2,200,100)
 
     x=[]
@@ -51,13 +52,15 @@ def ShowLiveRPM():
                         x.pop(0)
                         y.pop(0)
                 ax2.clear()
-                ax2.plot(x,y)
+                ax2.plot(x,y,color='red')
                 ax2.set_title("RPM")
                 plt2.xlabel('Sample #')
                 plt2.ylabel('RPM')
+                
                     
         anim=animation2.FuncAnimation(fig2,animate2,interval=50)
         ax2.set_facecolor('lightgray')
+        
         plt2.show()
 
 warnings.filterwarnings("ignore")
