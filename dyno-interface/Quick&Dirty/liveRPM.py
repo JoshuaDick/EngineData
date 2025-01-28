@@ -63,7 +63,6 @@ def ShowLiveRPM():
                 # Append data for live plotting
                 x.append(i)
                 y.append(avgRPM)
-                print(avgRPM)
 
                 # Limit number of points for live update
                 if len(x) >= 50:
