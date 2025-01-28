@@ -1,21 +1,24 @@
-import tkinterweb
-import tkinter as tk
+import webview
 import platform
 import ctypes as ct
-#Black bar on windows for aesthetics
-def dark_title_bar(window):
-    if 'Windows' in platform.platform():
-        window.update()
-        set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
-        get_parent = ct.windll.user32.GetParent
-        hwnd = get_parent(window.winfo_id())
-        value = 2
-        value = ct.c_int(value)
-        set_window_attribute(hwnd, 20, ct.byref(value), 4)
-root = tk.Tk()
-dark_title_bar(root)
-root.title("Dyno Recording Interface")
-frame = tkinterweb.HtmlFrame(root)
-frame.load_website("http://127.0.0.1:8050/")
-frame.pack(fill="both", expand=True)
-root.mainloop()
+import pygetwindow as gw
+import subprocess
+
+
+
+def open_browser():
+
+    # Open the WebView inside the Tkinter window
+    window = webview.create_window('Dyno Recording Interface', 'http://127.0.0.1:8050/',maximized=True)
+    
+    window.background_color = '#000000'
+    
+    # Start the webview
+    webview.start()
+    
+    #dark_title_bar(window)
+process = subprocess.Popen(["python",r'dyno-interface\\Quick&Dirty\\hackBrowser.py'])
+open_browser()
+process.kill()
+
+
