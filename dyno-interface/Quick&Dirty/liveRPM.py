@@ -8,6 +8,7 @@ from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import boxcar
 import warnings
 import os
+import math
 
 
 def move_figure(f, x, y):
@@ -40,12 +41,14 @@ def ShowLiveRPM():
                 if(len(Vin)>0):
                     nparray = np.array(Vin)
                     nparray = nparray - np.mean(nparray)
-
                     Sx = SFT.stft(nparray)
+
                     strongest_indices = np.argmax(abs(Sx),axis=0)
                     strongest_frequencies = strongest_indices*SFT.delta_f
                     RPMS = strongest_frequencies*60/SCALE
                     avgRPM = sum(RPMS)/len(RPMS)
+                    if (20*math.log10(max(abs(Sx))) < 50):
+                         avgRPM = 0
                     x.append(i)
                     y.append(avgRPM)
                     if len(x) >= 50:
