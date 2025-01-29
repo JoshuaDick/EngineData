@@ -8,6 +8,21 @@ import os
 import platform
 import ctypes as ct
 import matplotlib
+import requests
+
+API = 'http://127.0.0.1:5000/api/'
+
+def send_torque(torque_value):
+    url = API + 'torque'
+    data = {'torque': torque_value}
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            print(f"Torque updated successfully: {torque_value}")
+        else:
+            print(f"Failed to update Torque: {response.json()['error']}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending Torque data: {e}")
 
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
@@ -56,7 +71,7 @@ def ShowLiveTorque():
                 if len(x) >= 50:
                     x.pop(0)
                     y.pop(0)
-
+                send_torque(Force)
             ax1.clear()
             plt.xlabel('Sample #')
             plt.ylabel('Torque (Ft-LB)')

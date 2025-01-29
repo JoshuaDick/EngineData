@@ -12,6 +12,20 @@ import math
 import platform
 import ctypes as ct
 import matplotlib
+import requests
+API = 'http://127.0.0.1:5000/api/'
+
+def send_rpm(rpm_value):
+    url = API + 'rpm'
+    data = {'rpm': rpm_value}
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            print(f"RPM updated successfully: {rpm_value}")
+        else:
+            print(f"Failed to update RPM: {response.json()['error']}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending RPM data: {e}")
 
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
@@ -77,6 +91,7 @@ def ShowLiveRPM():
                 # Append data for live plotting
                 x.append(i)
                 y.append(avgRPM)
+                send_rpm(avgRPM)
 
                 # Limit number of points for live update
                 if len(x) >= 50:
