@@ -64,10 +64,10 @@ def getLatestTorque():
 def ShowLiveHP():
     global anim
     plt2.style.use('dark_background')
-    fig2, ax2 = plt2.subplots(num='Live Horsepower ;)', figsize=(8, 6))
+    fig2, ax2 = plt2.subplots(num='Live Horsepower ;)', figsize=(5, 4))
     plt2.title("Horsepower")
     
-    move_figure(fig2, 200, 100)
+    move_figure(fig2, 600, 100)
     dark_title_bar(fig2.canvas.manager.window)
     fig2.canvas.toolbar.pack_forget()
     x = []
@@ -95,7 +95,6 @@ def ShowLiveHP():
             ax2.set_facecolor('black')
             ax2.set_title("Horsepower")
             plt2.xlabel('Sample #')
-            plt2.ylabel('Horsepower')
 
     anim = animation2.FuncAnimation(fig2, animate2, interval=50)
     ax2.set_facecolor('lightgray')

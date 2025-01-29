@@ -42,9 +42,9 @@ def move_figure(f, x, y):
 
 def ShowLiveTorque():
     plt.style.use('dark_background')
-    fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(8,6))
-    plt.title("Torque")
-    move_figure(fig1,1000,100)
+    fig1,ax1 = plt.subplots(num='Live Torque ;)',figsize=(5,4))
+    plt.title("Torque (Ft-LB)")
+    move_figure(fig1,1100,100)
     dark_title_bar(fig1.canvas.manager.window)
     fig1.canvas.toolbar.pack_forget()
     x=[]
@@ -74,10 +74,9 @@ def ShowLiveTorque():
                 send_torque(Force)
             ax1.clear()
             plt.xlabel('Sample #')
-            plt.ylabel('Torque (Ft-LB)')
             ax1.plot(x,y)
             
-            ax1.set_title("Torque")
+            ax1.set_title("Torque (Ft-Lb)")
             
 
         anim=animation.FuncAnimation(fig1,animate,interval=10)
