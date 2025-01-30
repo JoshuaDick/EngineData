@@ -41,7 +41,7 @@ def run_process(process_number):
         process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\LivePlotter.py'])
         processes.append(process)
     else:
-        new_window.title("Recording Interface")
+        new_window.title("Data Analysis")
         label = tk.Label(new_window, text="Running Recording Interface...",bg='black',fg='white')
         label.pack(pady=10)
         process = subprocess.Popen(["python",r'dyno-interface\\Quick&Dirty\\localBrowser.py'])
@@ -118,8 +118,8 @@ label = tk.Label(root, text="Welcome to the Dyno Interface.",bg='black',fg='whit
 label.pack(pady=(0,25))
 
 #Button Labels
-live_rpm_button = tk.Button(root, text="Live Tuning", command=on_live_rpm, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
-recording_button = tk.Button(root, text="Launch Recording Interface", command=on_recording_interface, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
+live_rpm_button = tk.Button(root, text="Live Tuning", padx=20,command=on_live_rpm, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
+recording_button = tk.Button(root, text="Data Analysis",padx=20, command=on_recording_interface, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
 live_rpm_button.pack(pady=5)
 recording_button.pack(pady=20)
 
