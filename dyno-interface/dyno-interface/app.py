@@ -413,23 +413,6 @@ app.layout = html.Div(
                 },
             )
         ),
-        # dyno controls
-        html.Div(
-            [
-                # run button
-                html.Button(
-                    "Record",
-                    id="record-button",
-                    className="button-primary",
-                ),
-            ],
-            style={
-                "position": "absolute",
-                "bottom": "12%",
-                "left": "10%",
-                "font-family": "open sans",
-            },
-        ),
         # files dropdown
         html.Div(
             [
@@ -569,43 +552,6 @@ def update_graph(selected_files):
     # return the updated figure
     return fig
 
-
-# callback to update the record button label when it's clicked
-@app.callback(
-    Output("record-button", "children"),
-    [Input("record-button", "n_clicks")],
-    [State("record-button", "children")],
-)
-def update_record_button_label(n_clicks, current_label):
-    """
-    Update the record button label when the record/stop button is clicked.
-    Parameters:
-        n_clicks (int): number of times the button is clicked.
-        current_label (str): current button label.
-    Returns:
-        label (str): Updated button label.
-    """
-    if n_clicks is None:
-        # default label
-        return "Record"
-
-    # check button state
-    is_recording = current_label == "Stop"
-
-    if is_recording:
-        # if stop button was clicked, display "Record" and end the threads logging data
-        stop_event.set()
-        save = threading.Thread(target=save_CSV)
-        save.start()
-        return "Record"
-    else:
-        # if record button was clicked, display "Stop" and start the threads logging data
-        stop_event.clear()
-        torqueThread = threading.Thread(target=logTorque)
-        rpmThread = threading.Thread(target=FourierRPM)
-        rpmThread.start()
-        torqueThread.start()
-        return "Stop"
 
 
 @app.callback(
