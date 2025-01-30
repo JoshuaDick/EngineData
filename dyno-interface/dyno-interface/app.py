@@ -342,7 +342,10 @@ directory_path = "dyno-interface\dyno-interface\data"
 files = get_files_in_directory(directory_path)
 
 # load data
-dyno_graph = plot_data(directory_path + "/" + files[0])
+if files:
+    dyno_graph = plot_data(directory_path + "/" + files[0])
+else:
+    dyno_graph = go.Figure()
 dyno_graph.update_layout(
         # format x-axis
         xaxis_title="RPM",
