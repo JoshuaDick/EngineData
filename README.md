@@ -7,6 +7,7 @@ Measured from Tachometer output from the ECU (M130). RPM is calculated based on 
 
 ## Data Collection Devices
 Torque is collected by the NI-9219. RPM is collected by the NI-9205. The details of these data acquisition devices can be found from the National Instruments website. To test their functionality, install the NI DAQmx drivers and the NI MAX software. 
+This software assumes the signals are physically connecting to the topmost channel of both devices for voltage readings.
 
 ## Getting started
 1. Ensure you have the relevant NI-DAQ devices connected via USB
