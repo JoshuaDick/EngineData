@@ -91,9 +91,10 @@ def ShowLiveHP():
             sample = sample + 1
             # Update the plot
             ax2.clear()
+            ax2.set_ylim(0,120)
             ax2.plot(x, y, color='white')
             ax2.set_facecolor('black')
-            ax2.set_title("Horsepower")
+            ax2.set_title(f"Horsepower {round(hp, 2)}")
             plt2.xlabel('Sample #')
 
     anim = animation2.FuncAnimation(fig2, animate2, interval=50)
