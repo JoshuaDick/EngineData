@@ -17,8 +17,3 @@ if __name__ == "__main__":
     hp.start()
     rpm.start()
     torque.start()
-    
-
-
-    
-    
