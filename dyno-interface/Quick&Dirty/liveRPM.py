@@ -72,7 +72,6 @@ def ShowLiveRPM():
                 nparray = np.array(Vin)
                 nparray = nparray - np.mean(nparray)  # Remove DC offset
                 f, t, Zxx = stft(nparray, fs=fs, window=window, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
-
                 # Extract the magnitude spectrum
                 mag = np.abs(Zxx)
 
@@ -100,9 +99,10 @@ def ShowLiveRPM():
 
             # Update the plot
             ax2.clear()
+            ax2.set_ylim(0,20000)
             ax2.plot(x, y, color='red')
             ax2.set_facecolor('black')
-            ax2.set_title("RPM")
+            ax2.set_title(f"RPM {round(avgRPM, 2)}")
             plt2.xlabel('Sample #')
 
         anim = animation2.FuncAnimation(fig2, animate2, interval=50)
