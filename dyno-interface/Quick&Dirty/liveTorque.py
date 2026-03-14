@@ -70,7 +70,8 @@ def ShowLiveTorque():
                 avgVin = avgVin*1000
                 latest_avgVin[0] = avgVin   # store most recent voltage
 
-                Force = (avgVin - zero_voltage[0]) * slope
+               # Force = (avgVin - zero_voltage[0]) * slope
+                Force = (avgVin*4.297 - 41.89)*(1-0.728)
                 #Force = avgVin - Zero
                 y.append(Force)
 
