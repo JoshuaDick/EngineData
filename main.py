@@ -38,7 +38,7 @@ def run_process(process_number):
         new_window.title("Live Tuning")
         label = tk.Label(new_window, text="Running Live Engine Data...", bg='black',fg='white')
         label.pack(pady=10)
-        process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\LivePlotter.py'])
+        process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\combinedPlotter.py'])
         processes.append(process)
     else:
         new_window.title("Recording Interface")
