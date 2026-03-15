@@ -70,7 +70,7 @@ def ShowLiveDashboard():
     fs       = 250000
     win_hann = hann(5000)
     nperseg  = 5000
-    hop_size = 1000
+    hop_size = 100
     nfft     = 2 ** 14
     noverlap = nperseg - hop_size
 
