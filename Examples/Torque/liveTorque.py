@@ -13,6 +13,9 @@ from matplotlib.widgets import Button
 
 API = 'http://127.0.0.1:5000/api/'
 
+#number of x samples on the live graph
+GRAPH_WIDTH = 200
+
 def send_torque(torque_value):
     url = API + 'torque'
     data = {'torque': torque_value}
@@ -75,7 +78,7 @@ def ShowLiveTorque():
                 #Force = avgVin - Zero
                 y.append(Force)
 
-                if len(x) >= 200:
+                if len(x) >= GRAPH_WIDTH:
                     x.pop(0)
                     y.pop(0)
                 #send_torque(Force)
