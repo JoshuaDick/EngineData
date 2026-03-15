@@ -38,7 +38,7 @@ def run_process(process_number):
         new_window.title("Live Tuning")
         label = tk.Label(new_window, text="Running Live Engine Data...", bg='black',fg='white')
         label.pack(pady=10)
-        process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\combinedPlotter.py'])
+        process = subprocess.Popen(['python',r'dyno-interface\\GUI\\combinedPlotter.py'])
         processes.append(process)
     #Pointless if statement now, but once upon a time it was used for multiple buttons on the main screen
 
