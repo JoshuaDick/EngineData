@@ -78,7 +78,7 @@ def ShowLiveTorque():
                 if len(x) >= 200:
                     x.pop(0)
                     y.pop(0)
-                send_torque(Force)
+                #send_torque(Force)
 
                 ax1.clear()
                 ax1.set_ylim(0, 200)
@@ -88,6 +88,12 @@ def ShowLiveTorque():
             
         
         anim=animation.FuncAnimation(fig1,animate,interval=10)
+        def on_close(event):
+            task.stop()
+            task.close()
+            plt.close('all')
+
+        fig1.canvas.mpl_connect('close_event', on_close)
         ax1.set_facecolor('black')
         # Create Zero button
         ax_button = plt.axes([0.75, 0.9, 0.15, 0.06])
@@ -117,5 +123,4 @@ matplotlib.use('TkAgg')
 warnings.filterwarnings("ignore")
 
 ShowLiveTorque()
-os._exit(0)
 

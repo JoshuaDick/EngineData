@@ -13,7 +13,11 @@ import platform
 import ctypes as ct
 import matplotlib
 import requests
+
 API = 'http://127.0.0.1:5000/api/'
+
+#number of x samples on the live graph
+GRAPH_WIDTH = 200
 
 def send_rpm(rpm_value):
     url = API + 'rpm'
@@ -40,6 +44,7 @@ def move_figure(f, x, y):
     """Move figure's upper left corner to pixel (x, y)"""
     f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
 
+
 def ShowLiveRPM():
     global anim
     plt2.style.use('dark_background')
@@ -53,25 +58,20 @@ def ShowLiveRPM():
     y = []
     SCALE = 60.0
     fs = 250000  # Sampling frequency
-    window = hann(5000)  # Hann window for better spectral resolution
-    hop_size = 100  # Hop size for the short-time FFT
-    nperseg = 5000  # Increased segment length for better frequency resolution
-    nfft = 2 ** 14
-    noverlap = nperseg - hop_size
 
     with nidaqmx.Task() as task:
         task.ai_channels.add_ai_voltage_chan("cDAQ1Mod3/ai0", min_val=0, max_val=10)
-        task.timing.cfg_samp_clk_timing(fs, sample_mode=AcquisitionType.FINITE, samps_per_chan=int(fs * 0.05))
+        task.timing.cfg_samp_clk_timing(fs, sample_mode=AcquisitionType.CONTINUOUS)
+        task.in_stream.input_buf_size = int(fs*0.5)
+        task.start()
 
         def animate2(i):
-            task.start()
-            Vin = task.read(number_of_samples_per_channel=int(fs * 0.05))
-            task.stop()
+            Vin = task.read(number_of_samples_per_channel=nidaqmx.constants.READ_ALL_AVAILABLE, timeout=1.0)
 
             if len(Vin) > 0:
                 nparray = np.array(Vin)
                 nparray = nparray - np.mean(nparray)  # Remove DC offset
-                f, t, Zxx = stft(nparray, fs=fs, window=window, nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                f, t, Zxx = stft(nparray, fs=fs, window=hann(len(nparray)), nperseg=len(nparray))
                 # Extract the magnitude spectrum
                 mag = np.abs(Zxx)
 
@@ -90,10 +90,10 @@ def ShowLiveRPM():
                 # Append data for live plotting
                 x.append(i)
                 y.append(avgRPM)
-                send_rpm(avgRPM)
+                #send_rpm(avgRPM)
 
                 # Limit number of points for live update
-                if len(x) >= 50:
+                if len(x) >= GRAPH_WIDTH:
                     x.pop(0)
                     y.pop(0)
 
@@ -105,11 +105,17 @@ def ShowLiveRPM():
             ax2.set_title(f"RPM {round(avgRPM, 2)}")
             plt2.xlabel('Sample #')
 
-        anim = animation2.FuncAnimation(fig2, animate2, interval=50)
+        anim = animation2.FuncAnimation(fig2, animate2, interval=10)
         ax2.set_facecolor('lightgray')
+        def on_close(event):
+            task.stop()
+            task.close()
+            plt2.close('all')
+
+        fig2.canvas.mpl_connect('close_event', on_close)
 
         plt2.show()
+
 matplotlib.use('TkAgg')
 warnings.filterwarnings("ignore")
 ShowLiveRPM()
-os._exit(0)
