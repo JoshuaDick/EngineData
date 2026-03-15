@@ -40,12 +40,7 @@ def run_process(process_number):
         label.pack(pady=10)
         process = subprocess.Popen(['python',r'dyno-interface\\Quick&Dirty\\combinedPlotter.py'])
         processes.append(process)
-    else:
-        new_window.title("Recording Interface")
-        label = tk.Label(new_window, text="Running Recording Interface...",bg='black',fg='white')
-        label.pack(pady=10)
-        process = subprocess.Popen(["python",r'dyno-interface\\Quick&Dirty\\localBrowser.py'])
-        processes.append(process)
+    #Pointless if statement now, but once upon a time it was used for multiple buttons on the main screen
 
 
 #Crucial function in every codebase
@@ -74,15 +69,12 @@ def returnToMain(processes,window):
     root.deiconify()
 
 def on_live_rpm():
+    canvas_btn.itemconfig(circle, fill='navy')
     run_process(1)
-
-def on_recording_interface():
-    run_process(2)
     
 
 #Animation function for background graphic
 def update(ind):
-    
     frame = frames[ind]
     ind += 1
     if ind == frameCnt:
@@ -91,15 +83,12 @@ def update(ind):
     root.after(25, update, ind)
 
 def onClose():
-    kill_subprocesses(process.pid)
-    process.kill()
     sys.exit(0)
     
     
 #Initialize application
 root = tk.Tk()
 
-process = subprocess.Popen(["python",r'dyno-interface\\dyno-interface\\app.py'])
 #Background Animation
 frameCnt = 45
 frame_directory = 'frames_cache'
@@ -117,11 +106,41 @@ root.geometry("500x500")
 label = tk.Label(root, text="Welcome to the Dyno Interface.",bg='black',fg='white',font=('Times',25))
 label.pack(pady=(0,25))
 
-#Button Labels
-live_rpm_button = tk.Button(root, text="Live Tuning", command=on_live_rpm, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
-recording_button = tk.Button(root, text="Launch Recording Interface", command=on_recording_interface, bg='gray9',fg='white',font=('Times',16),activebackground='navy',activeforeground='white')
-live_rpm_button.pack(pady=5)
-recording_button.pack(pady=20)
+#Button Label
+button_size = 120
+canvas_btn = tk.Canvas(
+    root,
+    width=button_size,
+    height=button_size,
+    bg='black',
+    highlightthickness=0
+)
+
+circle = canvas_btn.create_oval(
+    5, 5, button_size - 5, button_size - 5,
+    outline='',
+    width=1,
+    fill=''
+)
+
+text = canvas_btn.create_text(
+    button_size // 2, button_size // 2,
+    text="Launch",
+    fill='white',
+    font=('Times', 16)
+)
+
+def on_enter(e):
+    canvas_btn.itemconfig(circle, fill='#1c1b1a')
+
+def on_leave(e):
+    canvas_btn.itemconfig(circle, fill='')
+
+canvas_btn.bind("<Enter>", on_enter)
+canvas_btn.bind("<Leave>", on_leave)
+canvas_btn.bind("<Button-1>", lambda e: on_live_rpm())
+canvas_btn.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
 
 #Set attributes of root application
 root.resizable(False,False)
@@ -138,9 +157,11 @@ y = (screen_height / 2) - (root.winfo_reqheight() / 2)
 
 root.geometry(f"+{int(x)}+{int(y*0.5)}")
 
+#Force root to show up on top of everything when first launching
 root.withdraw()
 root.deiconify()
 root.focus()
+
 # Run the GUI event loop
 root.mainloop()
 
