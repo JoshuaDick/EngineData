@@ -16,6 +16,8 @@ import platform
 import ctypes as ct
 import math
 import time
+import csv
+from datetime import datetime
 
 
 
@@ -38,8 +40,10 @@ MAX_POINTS_HP     = HP_XMAX
 
 # Parameters for FFT (SAMPS_PER_CHANNEL is kinda useless atm)
 fs = 250000
-
 SAMPS_PER_CHANNEL = int(fs * 0.5)
+
+# Parameter for recording
+RECORDING_INTERVAL_SEC = 0.01 #10ms between each recorded value, 100Hz
 
 # Window helpers
 
@@ -133,7 +137,6 @@ def ShowLiveDashboard():
     )
 
     # Shared state
-
     latest_rpm = [None]
     latest_torque = [None]
 
@@ -159,6 +162,13 @@ def ShowLiveDashboard():
     x_hp, y_hp = [], []
     sample_hp = [0]
     hp_last = [0.0]
+
+
+    # Recording state
+    is_recording = [False]
+    record_start_time = [None]
+    recorded_data = []
+
 
 
     # DAQ Tasks
@@ -192,7 +202,6 @@ def ShowLiveDashboard():
         rpm_task.start()
 
         # Animation Loop
-
 
         def animate(i):
             nonlocal avgRPM_last
@@ -303,6 +312,13 @@ def ShowLiveDashboard():
 
                 line_hp.set_data(range(len(y_hp)), y_hp)
 
+            # RECORDING
+            if (is_recording(0) and record_start_time[0] is None):
+                elapsed = round(current_time - record_start_time[0],3)
+                if len(recorded_data) == 0 or elapsed - recorded_data[-1][0] >= RECORD_INTERVAL_SEC: #prevent excessively large file size
+                    torque_val = y_torque[-1] if y_torque else 0.0
+                    recorded_data.append([elapsed, rpm_smoothed[0], torque_val, hp_last[0]])
+
             return (
                 line_torque,
                 line_rpm,
@@ -344,6 +360,36 @@ def ShowLiveDashboard():
             print(f"Zero set to voltage: {zero_voltage[0]}")
 
         zero_button.on_clicked(zero_callback)
+
+        # Record Button
+        ax_record = fig.add_axes([0.13, 0.88, 0.10, 0.07])
+        record_button = Button(ax_record, 'Record', color='black', hovercolor='green')
+        record_button.label.set_color('white')
+        for spine in ax_record.spines.values():
+            spine.set_edgecolor('white')
+
+        def record_callback(event):
+            if not is_recording[0]:
+                is_recording[0] = True
+                record_start_time[0] = time.time()
+                recorded_data.clear()
+                record_button.label.set_text('Stop Recording')
+                record_button.color = 'darkred'
+                record_button.ax.set_facecolor('darkred')
+                fig.canvas.draw_idle()
+            else:
+                is_recording[0] = False
+                record_button.label.set_text('Record')
+                record_button.ax.set_facecolor('black')
+                fig.canvas.draw_idle()
+                timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                filename = f'{timestamp}.csv'
+                with open(filename, 'w', newline='') as f:
+                    f.write('"Time","RPM","Torque","Horsepower"\n')
+                    for row in recorded_data:
+                        f.write(f'{row[0]},{row[1]},{row[2]},{row[3]}\n')
+
+        record_button.on_clicked(record_callback)
 
         plt.show()
 
