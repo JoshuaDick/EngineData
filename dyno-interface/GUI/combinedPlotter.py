@@ -313,9 +313,9 @@ def ShowLiveDashboard():
                 line_hp.set_data(range(len(y_hp)), y_hp)
 
             # RECORDING
-            if (is_recording(0) and record_start_time[0] is None):
+            if (is_recording[0] and record_start_time[0] is not None):
                 elapsed = round(current_time - record_start_time[0],3)
-                if len(recorded_data) == 0 or elapsed - recorded_data[-1][0] >= RECORD_INTERVAL_SEC: #prevent excessively large file size
+                if len(recorded_data) == 0 or elapsed - recorded_data[-1][0] >= RECORDING_INTERVAL_SEC: #prevent excessively large file size
                     torque_val = y_torque[-1] if y_torque else 0.0
                     recorded_data.append([elapsed, rpm_smoothed[0], torque_val, hp_last[0]])
 
