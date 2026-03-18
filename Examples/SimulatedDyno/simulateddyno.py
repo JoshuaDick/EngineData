@@ -13,7 +13,8 @@ import math
 import time
 import csv
 from datetime import datetime
-
+from tkinter import filedialog
+import tkinter as tk
 
 # Parameters for graphing
 
@@ -155,6 +156,10 @@ def ShowLiveDashboard():
 
     last_time = [time.time()]
     fps = [0.0]
+
+    # Logging file path
+    default_output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data-logging'))
+    output_path = [default_output_path]
 
     # Torque state
     x_torque, y_torque = [], []
@@ -334,7 +339,7 @@ def ShowLiveDashboard():
             record_button.ax.set_facecolor('black')
             fig.canvas.draw_idle()
             timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            filename = f'{timestamp}.csv'
+            filename = os.path.join(output_path[0], f'{timestamp}.csv')
             with open(filename, 'w', newline='') as f:
                 f.write('"Time","RPM","Torque","Horsepower"\n')
                 for row in recorded_data:
@@ -342,6 +347,29 @@ def ShowLiveDashboard():
             print(f"Saved {len(recorded_data)} rows to {filename}")
 
     record_button.on_clicked(record_callback)
+    # Set Path Button
+    ax_path = fig.add_axes([0.24, 0.88, 0.10, 0.07])
+    path_button = Button(ax_path, 'Set Log File Path', color='black', hovercolor='blue')
+    path_button.label.set_color('white')
+    for spine in ax_path.spines.values():
+        spine.set_edgecolor('white')
+
+    def path_callback(event):
+        os.makedirs(output_path[0], exist_ok=True)
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        chosen = filedialog.askdirectory(
+            title="Select output folder for logs",
+            initialdir=output_path[0]
+        )
+        root.destroy()
+        if chosen:
+            output_path[0] = chosen
+            print(f"Output path set to: {output_path[0]}")
+
+    path_button.on_clicked(path_callback)
+    plt.show()
 
     plt.show()
 
