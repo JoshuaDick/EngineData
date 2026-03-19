@@ -20,6 +20,9 @@ import csv
 from datetime import datetime
 from tkinter import filedialog
 import tkinter as tk
+import serial
+import serial.tools.list_ports
+import threading
 
 
 
@@ -47,8 +50,115 @@ SAMPS_PER_CHANNEL = int(fs * 0.5)
 # Parameter for recording
 RECORDING_INTERVAL_SEC = 0.01 #10ms between each recorded value, 100Hz
 
-# Window helpers
+# Parameters for serial comms
+SERIAL_BAUD = 115200
+SERIAL_RECONNECT_INTERVAL = 2.0
 
+CANBED_VID = 0X2E8A
+CANBED_PIDS = [0X000A, 0X0003, 0X0005]
+
+"""
+Continuously tries to find and connect to a CANBed RP2040 over USB-serial.
+Call send_torque(value) from any thread to transmit a torque reading.
+Read .connected and .port_name for UI status.
+"""
+class SerialManager:
+    def __init__(self):
+        self._conn: serial.Serial | None = None
+        self._lock = threading.Lock()
+        self.connected = False
+        self.port_name = ""
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+ 
+    def _is_canbed(self, port) -> bool:
+        # Return True if this port looks like a CANBed RP2040.
+        desc = (port.description or "").lower()
+        mfr  = (port.manufacturer or "").lower()
+ 
+        # Match by VID/PID
+        if port.vid == CANBED_VID and port.pid in CANBED_PIDS:
+            return True
+ 
+        # Friendly-name fallback
+        keywords = ("canbed", "rp2040", "raspberry pi", "pico", "seeed")
+        if any(k in desc or k in mfr for k in keywords):
+            return True
+ 
+        return False
+ 
+    def _try_connect(self):
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            if self._is_canbed(port):
+                try:
+                    conn = serial.Serial(port.device, SERIAL_BAUD, timeout=1)
+                    time.sleep(0.5)          # allow RP2040 USB CDC to settle
+                    with self._lock:
+                        self._conn = conn
+                        self.connected = True
+                        self.port_name = port.device
+                    print(f"[Serial] Connected to CANBed RP2040 on {port.device}")
+                    return True
+                except Exception as e:
+                    print(f"[Serial] Failed to open {port.device}: {e}")
+        return False
+ 
+    def _run(self):
+        #Background loop: keep trying to connect; detect disconnections.
+        while not self._stop_event.is_set():
+            with self._lock:
+                already_connected = self.connected
+                conn = self._conn
+ 
+            if not already_connected:
+                self._try_connect()
+            else:
+                # Ping the port to detect disconnection
+                if conn is None or not conn.is_open:
+                    with self._lock:
+                        self.connected = False
+                        self._conn = None
+                        self.port_name = ""
+                    print("[Serial] Disconnected — will retry…")
+ 
+            time.sleep(SERIAL_RECONNECT_INTERVAL)
+ 
+    def send_torque(self, value: float):
+        #Send a torque value as an ASCII line: 'T:<value>\\n'.
+        with self._lock:
+            conn = self._conn
+            ok   = self.connected
+ 
+        if not ok or conn is None:
+            return
+ 
+        try:
+            line = f"{value}\n".encode()
+            conn.write(line)
+        except Exception as e:
+            print(f"[Serial] Write error: {e}")
+            with self._lock:
+                self.connected = False
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                self._conn = None
+                self.port_name = ""
+ 
+    def stop(self):
+        self._stop_event.set()
+        with self._lock:
+            if self._conn and self._conn.is_open:
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+
+
+# Window helpers
 def dark_title_bar(window):
     if 'Windows' in platform.platform():
         window.update()
@@ -75,6 +185,7 @@ def setup_axis(ax, xmax, ymax):
 # Main dashboard
 
 def ShowLiveDashboard():
+    serial_mgr = SerialManager()
 
     plt.style.use('dark_background')
 
@@ -137,6 +248,9 @@ def ShowLiveDashboard():
         fontsize=12,
         ha='center'
     )
+
+    arduino_dot = ax_hp.text(0.97, 0.96, "●", transform=ax_hp.transAxes, color='red', fontsize=8, ha='center')
+    arduino_label = ax_hp.text(0.955, 0.96, "Arduino", transform=ax_hp.transAxes, color='white', fontsize=8, ha='right')
 
     # Shared state
     latest_rpm = [None]
@@ -220,6 +334,15 @@ def ShowLiveDashboard():
             last_time[0] = current_time
             fps_text.set_text(f"FPS: {fps[0]:.1f}")
 
+
+            #Arduino indicator
+            if serial_mgr.connected:
+                arduino_dot.set_color('lime')
+                arduino_label.set_text(f"Arduino ({serial_mgr.port_name})")
+            else:
+                arduino_dot.set_color('red')
+                arduino_label.set_text("Arduino")
+
             # TORQUE
 
             Vin = torque_task.read(
@@ -245,6 +368,8 @@ def ShowLiveDashboard():
                 title_torque.set_text(f"Torque (Ft-Lb): {round(Force,5)}")
 
                 line_torque.set_data(range(len(y_torque)), y_torque)
+
+                serial_mgr.send_torque(round(Force,1))
 
             # RPM
             Vin_rpm = rpm_task.read(
@@ -332,7 +457,9 @@ def ShowLiveDashboard():
                 title_torque,
                 title_rpm,
                 title_hp,
-                fps_text
+                fps_text,
+                arduino_dot,
+                arduino_label
             )
 
         anim = animation.FuncAnimation(
@@ -421,6 +548,8 @@ def ShowLiveDashboard():
 
         path_button.on_clicked(path_callback)
         plt.show()
+
+    serial_mgr.stop()
 
 
 warnings.filterwarnings("ignore")
